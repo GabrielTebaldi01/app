@@ -1,0 +1,229 @@
+package com.example.quizzapp
+
+import android.graphics.Color
+import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
+import android.os.CountDownTimer
+import android.view.View
+import android.widget.TextView
+import android.widget.Toast
+import com.example.quizzapp.databinding.ActivityMainBinding
+import android.media.MediaPlayer
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityMainBinding
+
+    private val questions = arrayOf(
+        "Qual é a capital do Brasil?",
+        "Quem foi o primeiro presidente dos Estados Unidos?",
+        "Qual é o maior oceano do mundo?",
+        "Quem escreveu 'Romeu e Julieta'?",
+        "Em que ano ocorreu a Revolução Francesa?",
+        "Qual é o símbolo químico para o ouro?",
+        "Quem foi o líder sul-africano que lutou contra o apartheid?",
+        "Quem pintou a Mona Lisa?",
+        "Qual é o maior planeta do nosso sistema solar?",
+        "Quem foi o fundador do Facebook?",
+        "Qual é o segundo maior país do mundo em área territorial?",
+        "Em que continente está localizado o Deserto do Saara?",
+        "Quem foi o famoso físico britânico que desenvolveu a teoria da relatividade?",
+        "Qual é a moeda oficial do Japão?",
+        "Quem foi o primeiro ser humano a pisar na Lua?",
+        "Qual é o país mais populoso do mundo?",
+        "Quem escreveu 'Dom Quixote'?",
+        "Em que ano a Segunda Guerra Mundial começou?",
+        "Qual é o nome da empresa de tecnologia fundada por Bill Gates?",
+        "Quem foi o famoso cientista que formulou as leis do movimento e a lei da gravidade?"
+    )
+
+    private val options = arrayOf(
+        arrayOf("Brasília", "Rio de Janeiro", "São Paulo"),
+        arrayOf("George Washington", "Thomas Jefferson", "John Adams"),
+        arrayOf("Oceano Atlântico", "Oceano Pacífico", "Oceano Índico"),
+        arrayOf("William Shakespeare", "Charles Dickens", "Jane Austen"),
+        arrayOf("1789", "1799", "1809"),
+        arrayOf("O", "Au", "Ag"),
+        arrayOf("Nelson Mandela", "Desmond Tutu", "Steve Biko"),
+        arrayOf("Leonardo da Vinci", "Vincent van Gogh", "Pablo Picasso"),
+        arrayOf("Júpiter", "Saturno", "Netuno"),
+        arrayOf("Mark Zuckerberg", "Bill Gates", "Elon Musk"),
+        arrayOf("Canadá", "China", "Rússia"),
+        arrayOf("África", "Ásia", "América do Sul"),
+        arrayOf("Albert Einstein", "Isaac Newton", "Niels Bohr"),
+        arrayOf("Yen", "Yuan", "Won"),
+        arrayOf("Neil Armstrong", "Buzz Aldrin", "Yuri Gagarin"),
+        arrayOf("China", "Índia", "Estados Unidos"),
+        arrayOf("Miguel de Cervantes", "Gustave Flaubert", "Fyodor Dostoevsky"),
+        arrayOf("1939", "1940", "1941"),
+        arrayOf("Microsoft", "Apple", "Google"),
+        arrayOf("Isaac Newton", "Galileu Galilei", "Stephen Hawking")
+    )
+
+    private val hints = arrayOf(
+        "Esta cidade é conhecida por sua arquitetura modernista.", // Brasília
+        "Ele também é conhecido como Pai da Pátria.", // George Washington
+        "É o maior e mais profundo oceano do mundo.", // Oceano Pacífico
+        "Um dos maiores dramaturgos da literatura inglesa.", // William Shakespeare
+        "Marcou o início de grandes mudanças políticas na França.", // Revolução Francesa
+        "Vem do latim 'aurum'.", // Ouro
+        "Tornou-se o primeiro presidente negro da África do Sul.", // Nelson Mandela
+        "Um polímata renascentista italiano.", // Leonardo da Vinci
+        "Conhecido por suas grandes manchas e tempestades.", // Júpiter
+        "Fundou a plataforma enquanto estava na universidade.", // Mark Zuckerberg
+        "Possui vastas áreas de natureza intocada e é conhecido por sua beleza natural.", // Canadá
+        "É o deserto mais quente e um dos maiores do mundo.", // Deserto do Saara
+        "Embora seja mais associado à Alemanha, Einstein passou parte significativa de sua vida no Reino Unido.", // Albert Einstein
+        "Uma das principais moedas asiáticas.", // Yen
+        "Aconteceu durante a missão Apollo 11 em 1969.", // Neil Armstrong
+        "Tem a maior população global.", // China
+        "É considerado um dos maiores romances da literatura mundial.", // Dom Quixote
+        "Iniciou com a invasão da Polônia pela Alemanha.", // Segunda Guerra Mundial
+        "Uma das maiores empresas de software do mundo.", // Microsoft
+        "Suas contribuições fundamentais para a física são conhecidas como as Leis de Newton." // Isaac Newton
+    )
+
+
+
+    private val correctAnswers = arrayOf(0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 2, 1, 0, 0, 0, 2, 0, 0, 0, 1, 1)
+
+    private var currentQuestionIndex = 0
+    private var score = 0
+    private val timeLimitMillis: Long = 10000
+    private lateinit var countDownTimer: CountDownTimer
+    private lateinit var timerText: TextView
+    private lateinit var timeUpText: TextView
+    private lateinit var mediaPlayer: MediaPlayer
+
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+
+        timerText = findViewById(R.id.timerText)
+        timeUpText = findViewById(R.id.timeUpText)
+
+        displayQuestion()
+
+        binding.optionButton.setOnClickListener {
+            checkAnswers(0)
+        }
+        binding.option2Button.setOnClickListener {
+            checkAnswers(1)
+        }
+        binding.option3Button.setOnClickListener {
+            checkAnswers(2)
+        }
+        binding.hintButton.setOnClickListener {
+            showHint()
+        }
+        startTimer()
+
+        mediaPlayer = MediaPlayer.create(this, R.raw.kahoot)
+        mediaPlayer.isLooping = true
+        mediaPlayer.start()
+    }
+    private fun startTimer() {
+        countDownTimer = object : CountDownTimer(timeLimitMillis, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                val secondsRemaining = millisUntilFinished / 1000
+                timerText.text = "${secondsRemaining}s"
+            }
+
+            override fun onFinish() {
+                handleTimeUp()
+            }
+        }
+        countDownTimer.start()
+    }
+    private fun handleTimeUp() {
+        wrongButtonColors(-1)
+        timeUpText.visibility = View.VISIBLE
+        showNextQuestionWithDelay()
+    }
+
+    private fun showNextQuestionWithDelay() {
+        if (currentQuestionIndex < questions.size - 1) {
+            currentQuestionIndex++
+            binding.dicasText.visibility = View.INVISIBLE
+            binding.questionText.postDelayed({
+                resetButtonColors()
+                displayQuestion()
+                startTimer()
+                timeUpText.visibility = View.INVISIBLE
+            }, 1000)
+        } else {
+            showResultToast()
+        }
+    }
+
+    private fun correctButtonColors(buttonIndex: Int){
+        when(buttonIndex){
+            0 -> binding.optionButton.setBackgroundColor(Color.GREEN)
+            1 -> binding.option2Button.setBackgroundColor(Color.GREEN)
+            2 -> binding.option3Button.setBackgroundColor(Color.GREEN)
+
+        }
+
+    }
+
+    private fun wrongButtonColors(buttonIndex: Int){
+        when(buttonIndex){
+            0 -> binding.optionButton.setBackgroundColor(Color.RED)
+            1 -> binding.option2Button.setBackgroundColor(Color.RED)
+            2 -> binding.option3Button.setBackgroundColor(Color.RED)
+        }
+    }
+
+    private fun resetButtonColors(){
+        binding.optionButton.setBackgroundColor(Color.rgb(50, 59, 96))
+        binding.option2Button.setBackgroundColor(Color.rgb(50, 59, 96))
+        binding.option3Button.setBackgroundColor(Color.rgb(50, 59, 96))
+    }
+
+
+
+    private fun displayQuestion(){
+        binding.questionText.text = questions[currentQuestionIndex]
+        binding.optionButton.text = options[currentQuestionIndex][0]
+        binding.option2Button.text = options[currentQuestionIndex][1]
+        binding.option3Button.text = options[currentQuestionIndex][2]
+        resetButtonColors()
+    }
+
+    private fun showResultToast() {
+        val resultMessage = "Você acertou $score perguntas!"
+        val toast = Toast.makeText(this, resultMessage, Toast.LENGTH_LONG)
+        toast.show()
+    }
+
+    private fun showHint() {
+        if (currentQuestionIndex < hints.size) {
+            binding.dicasText.visibility = View.VISIBLE
+            val hint = hints[currentQuestionIndex]
+            binding.dicasText.text = hint
+        } else {
+
+        }
+    }
+
+    private fun checkAnswers(selectedAnswersIndex: Int) {
+        countDownTimer.cancel()
+        val correctAnswerIndex = correctAnswers[currentQuestionIndex]
+
+        if (selectedAnswersIndex == correctAnswerIndex) {
+            score++
+            correctButtonColors(selectedAnswersIndex)
+        } else {
+            if (selectedAnswersIndex != -1) {
+                wrongButtonColors(selectedAnswersIndex)
+            }
+            correctButtonColors(correctAnswerIndex)
+        }
+
+        showNextQuestionWithDelay()
+    }
+}
+
